@@ -1,0 +1,189 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabaseClient'
+
+export default function Signup() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const { signUp } = useAuth()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    try {
+      await signUp(email, password, { full_name: fullName })
+      // Successful signup - redirect will be handled by AuthContext
+      console.log('Signup successful, AuthContext will handle redirection')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Google sign up
+  const handleGoogleSignUp = async () => {
+    setLoading(true)
+    setError('')
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/app/home`
+        }
+      });
+      
+      if (error) {
+        setError(error.message);
+      } else {
+        console.log('Google OAuth initiated, redirect will be handled by Supabase')
+      }
+    } catch (err) {
+      setError('Failed to sign up with Google. Please try again.')
+      console.error('Google sign up error:', err)
+    } finally {
+      setLoading(false)
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+  <div className="max-w-md w-full space-y-8 bg-gray-800/80 rounded-2xl shadow-xl p-8 backdrop-blur">
+        <button
+          onClick={() => navigate('/')}
+          className="mb-4 text-sm text-gray-400 hover:text-brand-600 flex items-center gap-1"
+        >
+          ← Back to Home
+        </button>
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-white">Create your account</h2>
+          <p className="mt-2 text-gray-400">Join CognEdge collaboration suite</p>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-1">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent"
+                placeholder="Enter your full name"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent"
+                placeholder="Create a password"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-600 focus:border-transparent"
+                placeholder="Confirm your password"
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating account...' : 'Create account'}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-medium text-brand-600 hover:text-brand-500">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </form>
+        <div className="mt-6">
+          <button
+            type="button"
+            onClick={handleGoogleSignUp}
+            disabled={loading}
+            className="w-full flex justify-center py-2 px-4 border border-gray-700 rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Signing up...' : 'Sign up with Google'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
